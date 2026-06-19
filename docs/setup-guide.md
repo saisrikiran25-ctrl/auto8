@@ -15,7 +15,7 @@ Before starting, ensure you have:
 
 ## 2. Step 1: Import the n8n Workflow
 
-1.  Navigate to the `/workflow` directory of this project and open [student-deadline-command-center.json](file:///c:/Users/Sai%20Kiran/Downloads/New%20folder%20(2)/student-deadline-command-center-automation/workflow/student-deadline-command-center.json).
+1.  Navigate to the `/workflow` directory of this project and open [student-deadline-command-center.json](../workflow/student-deadline-command-center.json).
 2.  Select all (`Ctrl+A` or `Cmd+A`) and copy the raw JSON contents to your clipboard.
 3.  Open your n8n workspace, create a **New Workflow**, and click anywhere on the canvas.
 4.  Paste (`Ctrl+V` or `Cmd+V`) the JSON. n8n will automatically render all triggers, code blocks, conditional switches, and AI nodes.
@@ -60,7 +60,8 @@ The intake node begins with a **Webhook Trigger**. You can feed data into this t
 
 To verify the installation:
 1.  Click **Listen for Test Event** on the n8n Webhook node.
-2.  Using a utility like `cURL`, Postman, or a Python script, send a POST request with the sample payload from [student-deadline-input-payload-example.json](file:///c:/Users/Sai%20Kiran/Downloads/New%20folder%20(2)/student-deadline-command-center-automation/schemas/student-deadline-input-payload-example.json) to your test webhook URL.
+2.  Using a utility like `cURL`, Postman, or a Python script, send a POST request with the sample payload from [student-deadline-input-payload-example.json](../schemas/student-deadline-input-payload-example.json) to your test webhook URL.
+
 3.  Verify the path executions:
     *   If `analysis_mode` is `prioritize`, the flow should execute the prioritization branch and return Mode A results.
     *   If `analysis_mode` is `weekly_plan`, it should run through both AI engines and output Mode B results.

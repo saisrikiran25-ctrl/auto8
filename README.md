@@ -35,6 +35,7 @@ This automation resolves these bottlenecks by acting as an active **student oper
 ### What It Does
 *   **Ingestion & Normalization:** Merges items from webhooks, calendars, forms, spreadsheets, and emails into a clean schema.
 *   **Deterministic Validation:** Catches missing titles, invalid dates, completed tasks, and duplicate entries.
+*   **Internal Diagnostics (`_debug_` convention):** Standardized workflow variables are stored in `_debug_` namespaced fields (e.g., `_debug_validation`, `_debug_overdue`, `_debug_scoring_completed`) to preserve intermediate logic states for audit logging and tracing without leaking details into final production outputs.
 *   **Priority Calculation:** Computes a priority score based on days remaining, grade weight, and estimated effort.
 *   **AI Reasoning Layer:** Translates the prioritizations into concrete daily actions and schedules structured study blocks.
 *   **Overload Detection:** Issues warnings when daily study requirements exceed available hours.
@@ -93,7 +94,8 @@ student-deadline-command-center-automation/
 2.  **Configure LLM Nodes:** Create credentials for your preferred AI provider (e.g., Google Gemini, OpenAI, or Anthropic) in the LLM nodes.
 3.  **Map Inputs:** Connect the Webhook trigger to your manual submission form, Notion database, or email parser.
 4.  **Test Execution:** Run a sample payload from `schemas/student-deadline-input-payload-example.json` to verify schema validation and parser nodes.
-5.  *Detailed instructions are available in [setup-guide.md](file:///c:/Users/Sai%20Kiran/Downloads/New%20folder%20(2)/student-deadline-command-center-automation/docs/setup-guide.md).*
+5.  *Detailed instructions are available in [setup-guide.md](docs/setup-guide.md).*
+
 
 ---
 
