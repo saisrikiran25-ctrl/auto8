@@ -1,0 +1,99 @@
+{
+  "student_id": "std_9921",
+  "analysis_mode": "weekly_plan",
+  "timezone": "America/New_York",
+  "preferred_tone": "concise_direct",
+  "student_profile": {
+    "name": "Sarah Chen",
+    "academic_level": "university_undergrad",
+    "courses": [
+      "CS 3110: Advanced Data Structures",
+      "CHEM 2080: Organic Chemistry Lab",
+      "ENGL 1010: Expository Writing"
+    ],
+    "weekly_available_study_hours": 15.0
+  },
+  "deadline_items": [
+    {
+      "title": "CS 3110 Midterm Exam",
+      "course_name": "CS 3110: Advanced Data Structures",
+      "deadline_type": "exam",
+      "due_date": "2026-06-18T14:00:00-04:00",
+      "estimated_hours": 8.0,
+      "weight_percent": 25.0,
+      "importance_level": "high",
+      "source": "canvas_sync",
+      "status": "not_started",
+      "notes": "Covers graph search, trees, balanced binary trees, and hashing. Exam is in Hollister Hall Room 110."
+    },
+    {
+      "title": "CHEM 2080 Lab Report 4",
+      "course_name": "CHEM 2080: Organic Chemistry Lab",
+      "deadline_type": "assignment",
+      "due_date": "2026-06-19T17:00:00-04:00",
+      "estimated_hours": 4.0,
+      "weight_percent": 5.0,
+      "importance_level": "medium",
+      "source": "manual_entry",
+      "status": "in_progress",
+      "notes": "Requires drawing molecular structures using ChemDraw and writing up the results section."
+    },
+    {
+      "title": "ENGL 1010 Research Proposal",
+      "course_name": "ENGL 1010: Expository Writing",
+      "deadline_type": "assignment",
+      "due_date": "2026-06-21T23:59:00-04:00",
+      "estimated_hours": 2.5,
+      "weight_percent": 8.0,
+      "importance_level": "medium",
+      "source": "syllabus_import",
+      "status": "not_started",
+      "notes": "Draft needs to include an annotated bibliography containing at least 3 academic sources."
+    },
+    {
+      "title": "Weekly Lab Safety Quiz",
+      "course_name": "CHEM 2080: Organic Chemistry Lab",
+      "deadline_type": "quiz",
+      "due_date": "2026-06-16T11:00:00-04:00",
+      "estimated_hours": 1.0,
+      "weight_percent": 1.0,
+      "importance_level": "low",
+      "source": "canvas_sync",
+      "status": "not_started",
+      "notes": "Safety quiz on chemical handling and emergency wash stations."
+    }
+  ],
+  "calendar_constraints": {
+    "busy_slots": [
+      {
+        "title": "CS 3110 Lecture",
+        "start": "2026-06-15T10:00:00-04:00",
+        "end": "2026-06-15T11:15:00-04:00"
+      },
+      {
+        "title": "CHEM 2080 Lab",
+        "start": "2026-06-16T13:00:00-04:00",
+        "end": "2026-06-16T16:00:00-04:00"
+      },
+      {
+        "title": "Varsity Debate Practice",
+        "start": "2026-06-19T16:30:00-04:00",
+        "end": "2026-06-19T19:00:00-04:00"
+      }
+    ],
+    "quiet_hours": [
+      {
+        "start": "22:00",
+        "end": "08:00"
+      }
+    ]
+  },
+  "study_preferences": {
+    "block_length_minutes": 90,
+    "preferred_reminder_channel": "telegram",
+    "preferred_study_times": [
+      "afternoon",
+      "morning"
+    ]
+  }
+}

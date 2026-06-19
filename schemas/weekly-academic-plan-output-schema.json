@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WeeklyAcademicPlanOutput",
+  "type": "OBJECT",
+  "properties": {
+    "status": {
+      "type": "STRING",
+      "enum": ["success", "fallback"]
+    },
+    "mode": {
+      "type": "STRING",
+      "enum": ["weekly_plan"]
+    },
+    "weekly_summary": {
+      "type": "STRING"
+    },
+    "week_start": {
+      "type": "STRING"
+    },
+    "week_end": {
+      "type": "STRING"
+    },
+    "top_three_focus_areas": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "upcoming_deadlines": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "title": { "type": "STRING" },
+          "due_date": { "type": "STRING" },
+          "course": { "type": "STRING" },
+          "weight_percent": { "type": "NUMBER" }
+        },
+        "required": ["title", "due_date", "course", "weight_percent"]
+      }
+    },
+    "recommended_study_plan": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "day": { "type": "STRING" },
+          "focus_item": { "type": "STRING" },
+          "session_count": { "type": "INTEGER", "minimum": 0 },
+          "session_length_minutes": { "type": "INTEGER", "minimum": 0 },
+          "notes": { "type": "STRING" }
+        },
+        "required": ["day", "focus_item", "session_count", "session_length_minutes", "notes"]
+      }
+    },
+    "overdue_items": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "title": { "type": "STRING" },
+          "course": { "type": "STRING" },
+          "days_overdue": { "type": "INTEGER" }
+        },
+        "required": ["title", "course", "days_overdue"]
+      }
+    },
+    "conflict_warnings": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "issue": { "type": "STRING" },
+          "affected_items": {
+            "type": "ARRAY",
+            "items": { "type": "STRING" }
+          },
+          "recommendation": { "type": "STRING" }
+        },
+        "required": ["issue", "affected_items", "recommendation"]
+      }
+    },
+    "catch_up_recommendations": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "what_to_do_today": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "what_to_do_this_weekend": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "reminder_recommendations": {
+      "type": "STRING"
+    },
+    "overall_risk_level": {
+      "type": "STRING",
+      "enum": ["low", "medium", "high", "critical_overload"]
+    },
+    "confidence_band": {
+      "type": "STRING",
+      "enum": ["high", "medium", "low", "none"]
+    },
+    "needs_human_review": {
+      "type": "BOOLEAN"
+    },
+    "review_reason": {
+      "type": ["STRING", "NULL"]
+    }
+  },
+  "required": [
+    "status",
+    "mode",
+    "weekly_summary",
+    "week_start",
+    "week_end",
+    "top_three_focus_areas",
+    "upcoming_deadlines",
+    "recommended_study_plan",
+    "overdue_items",
+    "conflict_warnings",
+    "catch_up_recommendations",
+    "what_to_do_today",
+    "what_to_do_this_weekend",
+    "reminder_recommendations",
+    "overall_risk_level",
+    "confidence_band",
+    "needs_human_review"
+  ]
+}

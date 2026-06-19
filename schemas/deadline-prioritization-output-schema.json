@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DeadlinePrioritizationOutput",
+  "type": "OBJECT",
+  "properties": {
+    "status": {
+      "type": "STRING",
+      "enum": ["success", "fallback"]
+    },
+    "mode": {
+      "type": "STRING",
+      "enum": ["prioritize"]
+    },
+    "analysis_summary": {
+      "type": "STRING"
+    },
+    "student_id": {
+      "type": "STRING"
+    },
+    "top_priorities": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "title": { "type": "STRING" },
+          "course_name": { "type": "STRING" },
+          "priority_score": { "type": "INTEGER", "minimum": 0, "maximum": 100 },
+          "why_it_matters": { "type": "STRING" }
+        },
+        "required": ["title", "course_name", "priority_score", "why_it_matters"]
+      }
+    },
+    "deadline_risk_level": {
+      "type": "STRING",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "overload_risk_level": {
+      "type": "STRING",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "recommended_next_actions": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "action": { "type": "STRING" },
+          "timing": { "type": "STRING" },
+          "reason": { "type": "STRING" }
+        },
+        "required": ["action", "timing", "reason"]
+      }
+    },
+    "must_start_now_items": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "monitor_items": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "defer_if_needed_items": {
+      "type": "ARRAY",
+      "items": { "type": "STRING" }
+    },
+    "reminder_schedule_recommendation": {
+      "type": "OBJECT",
+      "properties": {
+        "channel": { "type": "STRING", "enum": ["email", "telegram", "slack"] },
+        "frequency": { "type": "STRING", "enum": ["daily", "twice_daily", "weekly"] },
+        "notes": { "type": "STRING" }
+      },
+      "required": ["channel", "frequency"]
+    },
+    "study_block_recommendations": {
+      "type": "ARRAY",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "title": { "type": "STRING" },
+          "recommended_sessions": { "type": "INTEGER", "minimum": 0 },
+          "session_length_minutes": { "type": "INTEGER", "minimum": 0 },
+          "suggested_start_window": { "type": "STRING" }
+        },
+        "required": ["title", "recommended_sessions", "session_length_minutes", "suggested_start_window"]
+      }
+    },
+    "calendar_conflict_notes": {
+      "type": ["STRING", "NULL"]
+    },
+    "input_gaps_or_risks": {
+      "type": ["ARRAY", "NULL"],
+      "items": { "type": "STRING" }
+    },
+    "confidence_band": {
+      "type": "STRING",
+      "enum": ["high", "medium", "low", "none"]
+    },
+    "needs_human_review": {
+      "type": "BOOLEAN"
+    },
+    "review_reason": {
+      "type": ["STRING", "NULL"]
+    }
+  },
+  "required": [
+    "status",
+    "mode",
+    "analysis_summary",
+    "student_id",
+    "top_priorities",
+    "deadline_risk_level",
+    "overload_risk_level",
+    "recommended_next_actions",
+    "must_start_now_items",
+    "monitor_items",
+    "defer_if_needed_items",
+    "study_block_recommendations",
+    "confidence_band",
+    "needs_human_review"
+  ]
+}

@@ -1,0 +1,451 @@
+{
+  "name": "Student Deadline Command Center Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "academic-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node_webhook_trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 240]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "model_provider",
+              "value": "gemini"
+            },
+            {
+              "name": "model_name",
+              "value": "gemini-1.5-flash"
+            }
+          ],
+          "number": [
+            {
+              "name": "temperature",
+              "value": 0.1
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_provider_config",
+      "name": "Provider Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [280, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const raw = $input.item.json;\nconst normalized = {\n  student_id: raw.student_id || 'unknown_std',\n  analysis_mode: raw.analysis_mode || 'prioritize',\n  timezone: raw.timezone || 'UTC',\n  preferred_tone: raw.preferred_tone || 'concise',\n  student_profile: {\n    name: raw.student_profile?.name || 'Academic User',\n    academic_level: raw.student_profile?.academic_level || 'university_undergrad',\n    courses: raw.student_profile?.courses || [],\n    weekly_available_study_hours: Number(raw.student_profile?.weekly_available_study_hours || 15.0)\n  },\n  deadline_items: (raw.deadline_items || []).map(item => ({\n    title: item.title || 'Untitled Task',\n    course_name: item.course_name || 'Unassigned Course',\n    deadline_type: item.deadline_type || 'assignment',\n    due_date: item.due_date || null,\n    estimated_hours: item.estimated_hours ? Number(item.estimated_hours) : null,\n    weight_percent: item.weight_percent ? Number(item.weight_percent) : 0.0,\n    importance_level: item.importance_level || 'medium',\n    source: item.source || 'manual',\n    status: item.status || 'not_started',\n    notes: item.notes || ''\n  })),\n  calendar_constraints: {\n    busy_slots: raw.calendar_constraints?.busy_slots || [],\n    quiet_hours: raw.calendar_constraints?.quiet_hours || []\n  },\n  study_preferences: {\n    block_length_minutes: Number(raw.study_preferences?.block_length_minutes || 90),\n    preferred_reminder_channel: raw.study_preferences?.preferred_reminder_channel || 'email',\n    preferred_study_times: raw.study_preferences?.preferred_study_times || ['afternoon']\n  }\n};\n\nreturn {\n  json: {\n    ...normalized,\n    _debug_normalized_input: true\n  }\n};"
+      },
+      "id": "node_normalize_input",
+      "name": "Normalize Student Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [460, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $input.item.json;\nconst validation = {\n  valid: true,\n  errors: [],\n  missing_fields: []\n};\n\nif (!data.student_id || data.student_id === 'unknown_std') {\n  validation.missing_fields.push('student_id');\n}\n\nif (!data.deadline_items || data.deadline_items.length === 0) {\n  validation.valid = false;\n  validation.errors.push('No deadline items provided in inventory.');\n}\n\ndata.deadline_items.forEach((item, index) => {\n  if (!item.due_date) {\n    validation.errors.push(`Item at index ${index} (${item.title}) is missing a due date.`);\n  }\n});\n\nreturn {\n  json: {\n    ...data,\n    _debug_validation: validation\n  }\n};"
+      },
+      "id": "node_validate_fields",
+      "name": "Validate Required Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [640, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $input.item.json;\nconst now = new Date();\nconst checked_items = [];\nconst overdue_items = [];\nconst warnings = [];\n\ndata.deadline_items.forEach(item => {\n  if (!item.due_date) {\n    warnings.push(`Missing due date for: ${item.title}`);\n    return;\n  }\n  \n  const due = new Date(item.due_date);\n  if (isNaN(due.getTime())) {\n    warnings.push(`Invalid date format for: ${item.title}`);\n    return;\n  }\n  \n  const is_overdue = due < now && item.status !== 'completed';\n  if (is_overdue) {\n    overdue_items.push({\n      title: item.title,\n      course: item.course_name,\n      days_overdue: Math.round((now - due) / (1000 * 60 * 60 * 24))\n    });\n  }\n  \n  checked_items.push({\n    ...item,\n    _debug_is_overdue: is_overdue\n  });\n});\n\nreturn {\n  json: {\n    ...data,\n    deadline_items: checked_items,\n    _debug_overdue: overdue_items,\n    _debug_warnings: warnings\n  }\n};"
+      },
+      "id": "node_deterministic_checks",
+      "name": "Run Deterministic Deadline Checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [820, 240]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const data = $input.item.json;\nconst now = new Date();\n\nconst scored_items = data.deadline_items.map(item => {\n  let score = 0;\n  \n  // 1. Time urgency calculation\n  if (item.due_date) {\n    const due = new Date(item.due_date);\n    const diff_time = due - now;\n    const diff_days = diff_time / (1000 * 60 * 60 * 24);\n    \n    if (diff_days <= 1) score += 50;      // Highly Urgent\n    else if (diff_days <= 3) score += 40;\n    else if (diff_days <= 7) score += 25;\n    else if (diff_days <= 14) score += 10;\n  }\n  \n  // 2. Grade weight calculation\n  if (item.weight_percent >= 20.0) score += 30;\n  else if (item.weight_percent >= 10.0) score += 20;\n  else if (item.weight_percent > 0) score += 10;\n  \n  // 3. Effort score\n  const hours = item.estimated_hours || 2.0;\n  if (hours >= 10.0) score += 20;\n  else if (hours >= 4.0) score += 14;\n  else score += 6;\n  \n  // 4. Overdue boost\n  if (item._debug_is_overdue) score += 25;\n  \n  score = Math.min(score, 100);\n  \n  let tier = 'routine';\n  if (score >= 80) tier = 'critical';\n  else if (score >= 50) tier = 'important';\n  \n  return {\n    ...item,\n    priority_score: score,\n    priority_tier: tier\n  };\n});\n\nreturn {\n  json: {\n    ...data,\n    deadline_items: scored_items,\n    _debug_scoring_completed: true\n  }\n};"
+      },
+      "id": "node_calculate_priority",
+      "name": "Calculate Priority Signals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1000, 240]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json._debug_validation.valid}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node_signal_gate",
+      "name": "Validate Signal Strength",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1180, 240]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "fallback"
+            },
+            {
+              "name": "analysis_summary",
+              "value": "Failed validation checks. The input did not contain enough valid fields to perform academic analysis."
+            }
+          ],
+          "boolean": [
+            {
+              "name": "needs_human_review",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_low_signal_fallback",
+      "name": "Low-Signal Fallback",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1180, 440]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt_text",
+              "value": "=Create an academic prioritization report based on the following student data:\n\nStudent Profile:\nLevel: {{$json.student_profile.academic_level}}\nAvailability: {{$json.student_profile.weekly_available_study_hours}} hrs/week\nTimezone: {{$json.timezone}}\n\nDeadline Items:\n{{JSON.stringify($json.deadline_items)}}\n\nCalendar constraints:\n{{JSON.stringify($json.calendar_constraints.busy_slots)}}\n\nRemember: Do not add motivational text. Return strictly valid JSON."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_prep_priority_prompt",
+      "name": "Prep Deadline Analysis Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1380, 180]
+    },
+    {
+      "parameters": {
+        "model": "={{$node[\"Provider Config\"].json.model_name}}",
+        "options": {
+          "temperature": "={{$node[\"Provider Config\"].json.temperature}}"
+        }
+      },
+      "id": "node_ai_priority",
+      "name": "AI: Deadline Prioritization",
+      "type": "n8n-nodes-base.basicLlmChat",
+      "typeVersion": 1,
+      "position": [1560, 180]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $input.item.json.response || '';\nlet cleanJson = response.trim();\n\n// Strip markdown JSON wrapping if present\nif (cleanJson.startsWith('```json')) {\n  cleanJson = cleanJson.substring(7);\n}\nif (cleanJson.endsWith('```')) {\n  cleanJson = cleanJson.substring(0, cleanJson.length - 3);\n}\ncleanJson = cleanJson.trim();\n\ntry {\n  const parsed = JSON.parse(cleanJson);\n  return {\n    json: {\n      ...parsed,\n      status: 'success',\n      _debug_llm_parse_success: true\n    }\n  };\n} catch (e) {\n  return {\n    json: {\n      status: 'fallback',\n      analysis_summary: 'Failed to parse AI prioritization response.',\n      needs_human_review: true,\n      review_reason: 'Malformed JSON from AI model node: ' + e.message\n    }\n  };\n}"
+      },
+      "id": "node_parse_priority",
+      "name": "Parse Deadline Analysis",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1740, 180]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const parsed = $input.item.json;\nconst original = $node[\"Calculate Priority Signals\"].json;\n\n// Deterministic Quality Check: Compare original deadline list size to parsed priorities size\nif (parsed.status === 'success' && parsed.top_priorities) {\n  const parsedTitles = parsed.top_priorities.map(t => t.title);\n  const originalTitles = original.deadline_items.map(t => t.title);\n  \n  // Check if LLM missed items or fabricated items\n  const missing = originalTitles.filter(t => !parsedTitles.includes(t));\n  if (missing.length > 0) {\n    parsed.needs_human_review = true;\n    parsed.review_reason = (parsed.review_reason || '') + ` AI prioritization missed original items: ${missing.join(', ')}.`;\n  }\n}\n\nreturn { json: parsed };"
+      },
+      "id": "node_workload_quality_check",
+      "name": "Deterministic Workload Quality Checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [1920, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Calculate Priority Signals\"].json.analysis_mode}}",
+              "value2": "weekly_plan"
+            }
+          ]
+        }
+      },
+      "id": "node_mode_switch",
+      "name": "If Weekly Plan Mode",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2100, 180]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt_text",
+              "value": "=Create a structured weekly academic schedule based on the following prioritizations:\n\nPrioritization Input:\n{{JSON.stringify($json)}}\n\nAvailable Hours: {{$node[\"Calculate Priority Signals\"].json.student_profile.weekly_available_study_hours}} hrs\nBusy slots: {{JSON.stringify($node[\"Calculate Priority Signals\"].json.calendar_constraints.busy_slots)}}\nQuiet hours: {{JSON.stringify($node[\"Calculate Priority Signals\"].json.calendar_constraints.quiet_hours)}}\n\nMap study blocks of {{$node[\"Calculate Priority Signals\"].json.study_preferences.block_length_minutes}} mins around conflicts. Do not add motivational text."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_prep_weekly_prompt",
+      "name": "Prep Weekly Planning Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2280, 180]
+    },
+    {
+      "parameters": {
+        "model": "={{$node[\"Provider Config\"].json.model_name}}",
+        "options": {
+          "temperature": "={{$node[\"Provider Config\"].json.temperature}}"
+        }
+      },
+      "id": "node_ai_weekly",
+      "name": "AI: Weekly Academic Planner",
+      "type": "n8n-nodes-base.basicLlmChat",
+      "typeVersion": 1,
+      "position": [2460, 180]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const response = $input.item.json.response || '';\nlet cleanJson = response.trim();\n\nif (cleanJson.startsWith('```json')) {\n  cleanJson = cleanJson.substring(7);\n}\nif (cleanJson.endsWith('```')) {\n  cleanJson = cleanJson.substring(0, cleanJson.length - 3);\n}\ncleanJson = cleanJson.trim();\n\ntry {\n  const parsed = JSON.parse(cleanJson);\n  return {\n    json: {\n      ...parsed,\n      status: 'success',\n      mode: 'weekly_plan',\n      _debug_weekly_parse_success: true\n    }\n  };\n} catch (e) {\n  return {\n    json: {\n      status: 'fallback',\n      weekly_summary: 'Failed to parse AI weekly planner response.',\n      needs_human_review: true,\n      review_reason: 'Malformed JSON from AI weekly planner node: ' + e.message\n    }\n  };\n}"
+      },
+      "id": "node_parse_weekly",
+      "name": "Parse Weekly Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2640, 180]
+    },
+    {
+      "parameters": {
+        "responseCode": 200,
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "node_final_response",
+      "name": "Final Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2900, 240]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Provider Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize Student Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Student Input": {
+      "main": [
+        [
+          {
+            "node": "Validate Required Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Required Fields": {
+      "main": [
+        [
+          {
+            "node": "Run Deterministic Deadline Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Deterministic Deadline Checks": {
+      "main": [
+        [
+          {
+            "node": "Calculate Priority Signals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Priority Signals": {
+      "main": [
+        [
+          {
+            "node": "Validate Signal Strength",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Signal Strength": {
+      "main": [
+        [
+          {
+            "node": "Prep Deadline Analysis Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Low-Signal Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Deadline Analysis Request": {
+      "main": [
+        [
+          {
+            "node": "AI: Deadline Prioritization",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI: Deadline Prioritization": {
+      "main": [
+        [
+          {
+            "node": "Parse Deadline Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Deadline Analysis": {
+      "main": [
+        [
+          {
+            "node": "Deterministic Workload Quality Checks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deterministic Workload Quality Checks": {
+      "main": [
+        [
+          {
+            "node": "If Weekly Plan Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Weekly Plan Mode": {
+      "main": [
+        [
+          {
+            "node": "Prep Weekly Planning Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Weekly Planning Request": {
+      "main": [
+        [
+          {
+            "node": "AI: Weekly Academic Planner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI: Weekly Academic Planner": {
+      "main": [
+        [
+          {
+            "node": "Parse Weekly Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Weekly Plan": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Low-Signal Fallback": {
+      "main": [
+        [
+          {
+            "node": "Final Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
